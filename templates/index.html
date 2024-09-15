@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculador de Sistema Eléctrico</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Calculador de Sistema Eléctrico</h1>
+        <form id="calculator-form" method="post">
+            <label for="p_luminaria">Potencia de la Luminaria (W):</label>
+            <input type="number" id="p_luminaria" name="p_luminaria" required>
+
+            <label for="eficacia">Eficacia (lm/W):</label>
+            <input type="number" id="eficacia" name="eficacia" required>
+
+            <label for="autonomia">Autonomía (h):</label>
+            <input type="number" id="autonomia" name="autonomia" required>
+
+            <label for="ba_tip">Tipo de Batería:</label>
+            <select id="ba_tip" name="ba_tip">
+                <option value="Litio">Litio</option>
+                <option value="Gel">Gel</option>
+            </select>
+
+            <button type="submit">Calcular</button>
+        </form>
+
+        <div id="results" class="results" style="display: none;">
+            <h3>Resultados:</h3>
+
+            <!-- Resultados de Paneles -->
+            <div id="panel_results">
+                <h4>Paneles Disponibles:</h4>
+                <ul id="opciones_paneles"></ul>
+                <h4>Mejor Panel:</h4>
+                <ul id="mejor_panel"></ul>
+            </div>
+
+            <!-- Resultados de Baterías -->
+            <div id="bateria_results">
+                <h4>Baterías Disponibles:</h4>
+                <ul id="opciones_baterias"></ul>
+                <h4>Mejor Batería:</h4>
+                <ul id="mejor_bateria"></ul>
+            </div>
+
+            <!-- Resultados de MPPTs -->
+            <div id="mppt_results">
+                <h4>MPPTs Disponibles:</h4>
+                <ul id="opciones_mppt"></ul>
+                <h4>Mejor MPPT:</h4>
+                <ul id="mejor_mppt"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('calculator-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            fetch('/calcular', {
+                method: 'POST',
+                body: new FormData(this)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Mostrar todas las opciones de paneles
+                const opcionesPanelesContainer = document.getElementById('opciones_paneles');
+                opcionesPanelesContainer.innerHTML = '';
+                if (data.opciones_paneles) {
+                    data.opciones_paneles.forEach(panel => {
+                        const potencia = panel[0].Potencia;
+                        const cantidad = panel[2];
+                        const potenciaTotal = panel[3];
+                        opcionesPanelesContainer.innerHTML += `<li>Potencia del panel: ${potencia} W, Cantidad: ${cantidad}, Potencia Total: ${potenciaTotal} W</li>`;
+                    });
+                }
+
+                // Mostrar la mejor opción de panel
+                const mejorPanelContainer = document.getElementById('mejor_panel');
+                mejorPanelContainer.innerHTML = '';
+                if (data.mejor_panel) {
+                    const panel = data.mejor_panel[0];
+                    const cantidad = data.mejor_panel[2];
+                    const potenciaTotal = data.mejor_panel[3];
+                    mejorPanelContainer.innerHTML += `<li>Potencia del panel: ${panel.Potencia} W, Cantidad: ${cantidad}, Potencia Total: ${potenciaTotal} W</li>`;
+                }
+
+                // Mostrar todas las opciones de baterías
+                const opcionesBateriasContainer = document.getElementById('opciones_baterias');
+                opcionesBateriasContainer.innerHTML = '';
+                if (data.opciones_baterias) {
+                    data.opciones_baterias.forEach(bateria => {
+                        const capacidad = bateria[0].capacidad;
+                        const tension = bateria[0].tension;
+                        const cantidad = bateria[2];
+                        const dod = bateria[3];
+                        opcionesBateriasContainer.innerHTML += `<li>Capacidad de la batería: ${capacidad} Ah, Tensión: ${tension} V, Cantidad: ${cantidad}, DOD: ${dod}</li>`;
+                    });
+                }
+
+                // Mostrar la mejor opción de batería
+                const mejorBateriaContainer = document.getElementById('mejor_bateria');
+                mejorBateriaContainer.innerHTML = '';
+                if (data.mejor_bateria) {
+                    const bateria = data.mejor_bateria[0];
+                    const capacidad = bateria.capacidad;
+                    const tension = bateria.tension;
+                    const cantidad = data.mejor_bateria[2];
+                    const dod = data.mejor_bateria[3];
+                    mejorBateriaContainer.innerHTML += `<li>Capacidad de la batería: ${capacidad} Ah, Tensión: ${tension} V, Cantidad: ${cantidad}, DOD: ${dod}</li>`;
+                }
+
+                // Mostrar todas las opciones de MPPTs
+                const opcionesMPPTContainer = document.getElementById('opciones_mppt');
+                opcionesMPPTContainer.innerHTML = '';
+                if (data.opciones_mppt) {
+                    data.opciones_mppt.forEach(mppt => {
+                        opcionesMPPTContainer.innerHTML += `<li>MPPT ${mppt.Referencia}: PV input 12V: ${mppt['PV input W@12V']} W, PV input 24V: ${mppt['PV input W@24V']} W, Output 12V: ${mppt['P output W@12V']} W, Output 24V: ${mppt['P output W@24V']} W</li>`;
+                    });
+                }
+
+                // Mostrar la mejor opción de MPPT
+                const mejorMPPTContainer = document.getElementById('mejor_mppt');
+                mejorMPPTContainer.innerHTML = '';
+                if (data.mejor_mppt) {
+                    const mppt = data.mejor_mppt;
+                    mejorMPPTContainer.innerHTML += `<li>MPPT ${mppt.Referencia}: PV input 12V: ${mppt['PV input W@12V']} W, PV input 24V: ${mppt['PV input W@24V']} W, Output 12V: ${mppt['P output W@12V']} W, Output 24V: ${mppt['P output W@24V']} W</li>`;
+                }
+
+                document.getElementById('results').style.display = 'block';
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
+
